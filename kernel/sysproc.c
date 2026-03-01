@@ -81,6 +81,38 @@ int
 sys_pgaccess(void)
 {
   // lab pgtbl: your code here.
+
+  // get parameters of system call pgaccess
+  uint64 va;
+  if(argaddr(0, &va) < 0){
+    return -1;
+  }
+  int num;
+  if(argint(1, &num) < 0){
+    return -1;
+  }
+  uint64 bitmask;
+  if(argaddr(2, &bitmask) < 0){
+    return -1;
+  }
+
+  uint64 temp = 0;
+  pagetable_t pagetable = myproc()->pagetable;
+
+  if(num > 64)
+    num = 64;
+  
+  for(int i=0; i<64; ++i){
+    pte_t *pte = walk(pagetable, va + i*PGSIZE, 0);
+    if(pte && (*pte & PTE_V) && (*pte & PTE_A)) {
+      temp = temp | (1L << i);
+      *pte = *pte & (~PTE_A);
+    }
+  }
+
+  if(copyout(pagetable, bitmask, (char *)&temp, sizeof(temp)) < 0)
+    return -1;
+
   return 0;
 }
 #endif
